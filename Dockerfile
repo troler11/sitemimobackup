@@ -1,41 +1,36 @@
 # Etapa 1: Build
-FROM node:20-alpine as builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copia os arquivos de dependência
+# Copia tudo para o ambiente de build
 COPY . .
 
-# Instala todas as dependências (incluindo devDependencies para o build)
-RUN npm install webpack webpack-cli ts-loader copy-webpack-plugin html-webpack-plugin --save-dev
+# Instala as ferramentas necessárias para compilar TypeScript e Webpack
+RUN npm install webpack webpack-cli ts-loader typescript html-webpack-plugin copy-webpack-plugin style-loader css-loader @types/react @types/react-dom --save-dev
 
-# Copia o restante do código fonte
-COPY . .
-
-# Executa o build (compila Server e Client)
+# Roda o build (isso gera a pasta /app/dist)
 RUN npx webpack --config client/webpack.config.js
+# Se você tiver um webpack para o server também, rode ele aqui. 
+# Se for apenas o servidor em TS direto:
+RUN npx tsc server/index.ts --outDir dist/server --esModuleInterop --skipLibCheck
 
 # Etapa 2: Produção
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copia o package.json para instalar apenas dependências de produção
+# Instala apenas o básico para rodar o Express
 COPY package*.json ./
-
-# Instala apenas dependências necessárias para rodar (economiza espaço)
 RUN npm install --omit=dev
 
-# Copia a pasta 'dist' gerada na etapa de build anterior
+# Copia a pasta dist inteira (onde estão o server e o client)
 COPY --from=builder /app/dist ./dist
 
-# 🔥 A MÁGICA ENTRA AQUI 🔥
-# Copiamos a pasta client original para o servidor achar a pasta 'public' (onde estão o manifest e os ícones do PWA)
-COPY --from=builder /app/client ./client
-
-# Define a porta (O Easypanel usa a 3000 ou 80 por padrão, mas é bom explicitar)
+# Garante que o Node encontre o arquivo no caminho certo
 ENV PORT=3000
 EXPOSE 3000
 
-# Comando para iniciar
-CMD ["npm", "start"]
+# 🔥 CORREÇÃO DO COMANDO DE INÍCIO 🔥
+# Verifique se o seu arquivo compilado se chama index.js ou server.js
+CMD ["node", "dist/server/index.js"]
