@@ -6,6 +6,11 @@ const BottomNav: React.FC = () => {
     const { currentUser } = useAuth();
     const location = useLocation();
 
+    const handleLogout = () => {
+        logout();
+        navigate('/login', { replace: true });
+    };
+
     const isActive = (path: string) => location.pathname === path ? 'text-white' : 'text-white-50';
 
     const hasPermission = (menuKey: string) => {
