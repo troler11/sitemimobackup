@@ -163,6 +163,55 @@ const Escala: React.FC = () => {
         }
     };
 
+    // --- FUNÇÃO PARA BAIXAR A ESCALA ATUAL ---
+    const handleDownload = () => {
+        if (dadosFiltrados.length === 0) {
+            alert("Não há dados para exportar.");
+            return;
+        }
+
+        // Cabeçalhos do arquivo
+        const headers = [
+            'STATUS', 'MOTORISTA', 'RESERVA', 'CLIENTE', 'LINHA', 
+            'SENTIDO', 'INICIO', 'FIM', 'FROTA PROG', 'FROTA ENVIADA', 'OBSERVACOES'
+        ];
+
+        // Mapeia os dados da tela para as linhas do arquivo
+        const csvRows = dadosFiltrados.map(row => {
+            const frotaEnviada = (row.frota_enviada && row.frota_enviada !== '---') ? row.frota_enviada : '';
+            
+            return [
+                row.status || 'PENDENTE',
+                row.motorista || '',
+                row.reserva || '',
+                row.empresa || '',
+                row.rota || '',
+                row.sentido || '',
+                row.h_real || '',
+                row.hr_sai || '',
+                row.frota_escala || '',
+                frotaEnviada,
+                (row.obs || '').replace(/"/g, '""') // Protege aspas duplas dentro do texto
+            ].map(val => `"${val}"`).join(';'); // O ponto e vírgula (;) ajuda o Excel brasileiro a separar as colunas
+        });
+
+        // Junta cabeçalhos e linhas
+        const csvContent = [headers.join(';'), ...csvRows].join('\n');
+        
+        // Adiciona o BOM (\uFEFF) para garantir que os acentos (ç, ã, etc) funcionem no Excel
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        // Cria um link temporário e simula o clique para baixar
+        const link = document.createElement('a');
+        link.href = url;
+        const dataFormatada = filtroData.replace(/\//g, '-');
+        link.setAttribute('download', `Escala_${dataFormatada}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     // --- FUNÇÃO DE IMPORTAÇÃO DE EXCEL ---
     const handleImportarExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -430,8 +479,19 @@ const Escala: React.FC = () => {
                         placeholder="dd/mm/aaaa"
                         style={{width: '140px'}}
                     />
+    
 
                      <RefreshCcw size={18} onClick={() => fetchData(false)} style={{ cursor: 'pointer', color: colors.textGray }} />
+                    {/* 🔥 NOVO BOTÃO DE DOWNLOAD AQUI (Fica visível para todos) */}
+                    <button 
+                        className="btn btn-primary" 
+                        title="Baixar Escala Atual"
+                        onClick={handleDownload}
+                        style={{ cursor: 'pointer', height: '100%', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#0d6efd', color: '#fff', border: 'none' }}
+                    >
+                        <Download size={18} />
+                        <span>Baixar</span>
+                    </button>
                     
                     {(userRole === 'admin' || userRole === 'escalante') && (
                         <>
