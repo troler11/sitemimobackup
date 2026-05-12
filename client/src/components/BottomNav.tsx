@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const BottomNav: React.FC = () => {
     const { logout, currentUser } = useAuth();
+    const navigate = useNavigate();
     const location = useLocation();
 
     const handleLogout = () => {
