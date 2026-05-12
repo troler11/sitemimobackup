@@ -58,17 +58,15 @@ module.exports = {
     }),
     
     // Copia o manifest.json, sw.js e ícones para a pasta de produção
-    new CopyWebpackPlugin({
-      patterns: [
-        { 
-          // Procura na pasta client/public
-          from: path.resolve(__dirname, 'public'), 
-          // Joga na raiz de dist/client
-          to: path.resolve(__dirname, '../dist/client'), 
-          noErrorOnMissing: true 
-        },
-      ],
-    }),
+   new CopyWebpackPlugin({
+  patterns: [
+    { 
+      from: path.resolve(__dirname, 'public'), 
+      to: path.resolve(__dirname, '../dist/client'),
+      noErrorOnMissing: true 
+    },
+  ],
+}),
   ],
   
   // Otimização básica para o PWA carregar mais rápido
