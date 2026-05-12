@@ -69,9 +69,12 @@ const InstallPWA = () => {
 // --- LAYOUT (Sidebar + Conteúdo) ---
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const isMobile = window.innerWidth < 768;
 
     const contentStyle = {
-        marginLeft: isSidebarOpen ? '250px' : '80px',
+        // No celular (isMobile), a margem esquerda é SEMPRE 0
+        marginLeft: isMobile ? '0px' : (isSidebarOpen ? '250px' : '80px'),
+        paddingBottom: isMobile ? '80px' : '0px', // Espaço para não cobrir o conteúdo com a barra
         transition: 'margin-left 0.3s ease',
         minHeight: '100vh',
         backgroundColor: '#f8f9fa'
@@ -79,20 +82,25 @@ const Layout = () => {
 
     return (
         <div className="d-flex">
-            <Sidebar 
-                isOpen={isSidebarOpen} 
-                toggle={() => setIsSidebarOpen(!isSidebarOpen)} 
-            />
+            {/* Sidebar só aparece se NÃO for mobile */}
+            {!isMobile && (
+                <Sidebar 
+                    isOpen={isSidebarOpen} 
+                    toggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+                />
+            )}
             
             <div style={contentStyle} className="w-100">
                 <div className="p-3">
                     <Outlet context={{ toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen) }} />
                 </div>
             </div>
+
+            {/* BottomNav só aparece no mobile */}
+            <BottomNav />
         </div>
     );
 };
-
 const App: React.FC = () => {
     return (
         <AuthProvider>
