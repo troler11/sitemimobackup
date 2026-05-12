@@ -1,51 +1,35 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin'); // <-- 1. Adicione esta linha
 
 module.exports = {
-  mode: 'production', // No Render geralmente é production
-
-  // --- CORREÇÃO PRINCIPAL: CONTEXTO ---
-  // Define que a base para procurar arquivos é a pasta onde este arquivo está ('client')
+  mode: 'production',
   context: __dirname, 
-
-  // Agora './src/index.tsx' será procurado dentro de 'client/src/index.tsx'
   entry: './src/index.tsx',
 
   output: {
-    // Sai da pasta 'client' (..) e vai para 'dist/client' na raiz
     path: path.resolve(__dirname, '../dist/client'), 
-    filename: 'bundle.js',
+    filename: 'bundle.[contenthash].js', // Usar hash ajuda a limpar cache no PWA
     publicPath: '/', 
     clean: true,
   },
 
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/, 
-        use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
-      {
-        test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
-      },
-    ],
-  },
+  // ... resolve e module continuam iguais ...
 
   plugins: [
     new HtmlWebpackPlugin({
-      // --- CORREÇÃO DO HTML ---
-      // Usa path.resolve para garantir que ele ache o arquivo independente de onde o comando rodou
       template: path.resolve(__dirname, 'src/index.html'), 
+    }),
+    
+    // 🔥 2. ADICIONE ESTE PLUGIN AQUI 🔥
+    new CopyWebpackPlugin({
+      patterns: [
+        { 
+          from: path.resolve(__dirname, 'public'), // Copia da pasta 'client/public'
+          to: path.resolve(__dirname, '../dist/client'), // Para a raiz do site compilado
+          noErrorOnMissing: true 
+        },
+      ],
     }),
   ],
 };
