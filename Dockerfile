@@ -13,7 +13,7 @@ RUN npm install webpack webpack-cli ts-loader copy-webpack-plugin html-webpack-p
 COPY . .
 
 # Executa o build (compila Server e Client)
-RUN npm run build
+RUN npx webpack --config client/webpack.config.js
 
 # Etapa 2: Produção
 FROM node:20-alpine
