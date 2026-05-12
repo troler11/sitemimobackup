@@ -39,12 +39,25 @@ const BottomNav: React.FC = () => {
                 </Link>
             )}
 
-            <Link to="/perfil" className={`d-flex flex-column align-items-center text-decoration-none text-white-50`}>
-                <div className="bg-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px' }}>
-                    <i className="bi bi-person-fill text-danger" style={{ fontSize: '14px' }}></i>
+            {hasPermission('atrasos') && (
+                <Link to="/escala" className={`d-flex flex-column align-items-center text-decoration-none ${isActive('/atrasos')}`}>
+                    <i className="bi bi-clock fs-5 me-3"></i>
+                    <span style={{ fontSize: '10px' }}>Atrasos</span>
+                </Link>
+            )}
+
+            <button 
+                onClick={handleLogout}
+                className="btn d-flex flex-column align-items-center text-decoration-none border-0 p-0 text-white-50"
+                style={{ background: 'none' }}
+                title="Sair do Sistema"
+            >
+                <div className="bg-white rounded-circle d-flex align-items-center justify-content-center" 
+                     style={{ width: '28px', height: '28px' }}>
+                    <i className="bi bi-box-arrow-left text-danger" style={{ fontSize: '14px' }}></i>
                 </div>
-                <span style={{ fontSize: '10px' }}>Perfil</span>
-            </Link>
+                <span style={{ fontSize: '10px' }}>Sair</span>
+            </button>
         </div>
     );
 };
