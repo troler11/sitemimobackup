@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const BottomNav: React.FC = () => {
-    const { currentUser } = useAuth();
+    const { logout, currentUser } = useAuth();
     const location = useLocation();
 
     const handleLogout = () => {
@@ -45,7 +45,7 @@ const BottomNav: React.FC = () => {
             )}
 
             {hasPermission('atrasos') && (
-                <Link to="/escala" className={`d-flex flex-column align-items-center text-decoration-none ${isActive('/atrasos')}`}>
+                <Link to="/atrasos" className={`d-flex flex-column align-items-center text-decoration-none ${isActive('/atrasos')}`}>
                     <i className="bi bi-clock fs-5 me-3"></i>
                     <span style={{ fontSize: '10px' }}>Atrasos</span>
                 </Link>
