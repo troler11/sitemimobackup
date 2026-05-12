@@ -40,17 +40,15 @@ const distPath = path.resolve(rootDir, 'dist/client');
 app.use(express.static(distPath));
 
 // 2. Rota explícita para o ícone e manifest (evita erro de Download no PWA)
-app.get(['/manifest.json', '/icon-192.png', '/icon-512.png', '/sw.js'], (req, res) => {
+app.get(['/manifest.json', '/sw.js', '/icon-192.png', '/icon-512.png'], (req, res) => {
     res.sendFile(path.join(distPath, req.path));
 });
 
 // 3. Rota Curinga (*) que entrega o index.html
 app.get('*', (req: Request, res: Response) => {
-    const indexPath = path.join(distPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
+    res.sendFile(path.join(distPath, 'index.html'), (err) => {
         if (err) {
-            console.error('🚨 Index.html não encontrado em:', indexPath);
-            res.status(404).send('Frontend não compilado ou pasta incorreta.');
+            res.status(404).send("Frontend não encontrado. Verifique o build.");
         }
     });
 });
