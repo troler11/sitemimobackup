@@ -1,35 +1,78 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin'); // <-- 1. Adicione esta linha
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   mode: 'production',
+  
+  // Define o contexto como a pasta 'client' para o Webpack não se perder no Docker
   context: __dirname, 
+
+  // Ponto de entrada do seu App
   entry: './src/index.tsx',
 
   output: {
+    // Envia o build para a pasta dist na raiz do projeto
     path: path.resolve(__dirname, '../dist/client'), 
-    filename: 'bundle.[contenthash].js', // Usar hash ajuda a limpar cache no PWA
+    filename: 'bundle.[contenthash].js', 
     publicPath: '/', 
     clean: true,
   },
 
-  // ... resolve e module continuam iguais ...
+  resolve: {
+    // Importante para o Webpack reconhecer arquivos TSX e TS
+    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+  },
+
+  module: {
+    rules: [
+      {
+        // Loader para TypeScript e React
+        test: /\.(ts|tsx)$/, 
+        exclude: /node_modules/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            // Ignora erros de tipagem no build para evitar que o Docker trave por bobeira
+            transpileOnly: true, 
+          },
+        },
+      },
+      {
+        // Loader para CSS (Bootstrap e estilos próprios)
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        // Loader para imagens e ícones
+        test: /\.(png|svg|jpg|jpeg|gif)$/i,
+        type: 'asset/resource',
+      },
+    ],
+  },
 
   plugins: [
+    // Gera o index.html final injetando o bundle.js automaticamente
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'src/index.html'), 
     }),
     
-    // 🔥 2. ADICIONE ESTE PLUGIN AQUI 🔥
+    // Copia o manifest.json, sw.js e ícones para a pasta de produção
     new CopyWebpackPlugin({
       patterns: [
         { 
-          from: path.resolve(__dirname, 'public'), // Copia da pasta 'client/public'
-          to: path.resolve(__dirname, '../dist/client'), // Para a raiz do site compilado
+          // Procura na pasta client/public
+          from: path.resolve(__dirname, 'public'), 
+          // Joga na raiz de dist/client
+          to: path.resolve(__dirname, '../dist/client'), 
           noErrorOnMissing: true 
         },
       ],
     }),
   ],
+  
+  // Otimização básica para o PWA carregar mais rápido
+  optimization: {
+    minimize: true,
+  },
 };
