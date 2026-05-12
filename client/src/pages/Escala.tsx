@@ -210,7 +210,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
             // 3. Filtro de Status
             const realizou = item.ra_val && String(item.ra_val).trim() !== '' && String(item.ra_val).trim() !== '0';
             const obsTexto = (item.obs || '').toLowerCase();
-            const isCobrir = item.status === 'COBRIR' || obsTexto.includes('cobrir');
+            const isCobrir = item.status === 'COBRIR';
 
             let statusItem = 'pendente';
             if (item.status === 'MANUTENÇÃO') statusItem = 'manutencao';
@@ -630,7 +630,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                         ) : (
                             dadosFiltrados.map((row, i) => {
                                 const realizou = row.ra_val && String(row.ra_val).trim() !== '' && String(row.ra_val).trim() !== '0';
-                                const isCobrir = (row.obs || '').toLowerCase().includes('cobrir');
+                                 const isCobrir = row.status === 'COBRIR';
                                 const emEdicao = linhaEmEdicao === i; 
                                 
                                 return (
