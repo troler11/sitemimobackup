@@ -243,7 +243,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
             k.total++;
             const realizou = row.ra_val && String(row.ra_val).trim() !== '' && String(row.ra_val).trim() !== '0';
             const obsTexto = (row.obs || '').toLowerCase();
-            const isCobrir = row.status === 'COBRIR' || obsTexto.includes('cobrir');
+            const isCobrir = row.status === 'COBRIR';
 
             if (row.status === 'MANUTENÇÃO') {
                 k.manutencao++;
