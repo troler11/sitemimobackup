@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom
 import { AuthProvider } from './hooks/useAuth'; 
 import AuthGuard from './components/AuthGuard';
 import Sidebar from './components/Sidebar';
+import BottomNav from './components/BottomNav'; // <-- ADICIONE ESTA LINHA!
 import RoutesList from './pages/RoutesList';
 import RouteCreate from './pages/RouteCreate';
 import MinhaEscala from './pages/MinhaEscala';
