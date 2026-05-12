@@ -4,10 +4,10 @@ FROM node:20-alpine as builder
 WORKDIR /app
 
 # Copia os arquivos de dependência
-COPY package*.json ./
+COPY . .
 
 # Instala todas as dependências (incluindo devDependencies para o build)
-RUN npm install
+RUN npm install webpack webpack-cli ts-loader copy-webpack-plugin html-webpack-plugin --save-dev
 
 # Copia o restante do código fonte
 COPY . .
