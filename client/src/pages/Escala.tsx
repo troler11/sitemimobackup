@@ -12,7 +12,7 @@ const colors = {
     textGray: '#6b7280',
     textDark: '#111827',
     border: '#e5e7eb'
-};
+  };
 
 interface ItemEscala {
     id: number; 
@@ -50,9 +50,9 @@ const Escala: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- ESTADOS DE FILTRO ---
-    const [filtroEmpresa, setFiltroEmpresa] = useState<string[]>([]); // 🔥 AGORA É UM ARRAY
-    const [dropdownEmpresaAberto, setDropdownEmpresaAberto] = useState(false); // 🔥 CONTROLA O DROPDOWN CUSTOMIZADO
-    const dropdownRef = useRef<HTMLDivElement>(null); // 🔥 DETECTA CLIQUE FORA DO DROPDOWN
+    const [filtroEmpresa, setFiltroEmpresa] = useState<string[]>([]);
+    const [dropdownEmpresaAberto, setDropdownEmpresaAberto] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const [filtroStatus, setFiltroStatus] = useState(''); 
     const [filtroSentido, setFiltroSentido] = useState('');
@@ -81,7 +81,7 @@ const Escala: React.FC = () => {
         }
     }, [filtroData, linhaEmEdicao]);
 
-    // --- VERIFICAÇÃO DE USUÁRIO (NOME E ROLE) ---
+    // --- VERIFICAÇÃO DE USUÁRIO ---
     useEffect(() => {
         try {
             const userDataText = localStorage.getItem('userData');
@@ -124,7 +124,7 @@ const Escala: React.FC = () => {
         fetchMotoristas();
     }, []);
 
-    // --- DETECTA CLIQUE FORA DO DROPDOWN DE EMPRESAS ---
+    // --- DETECTA CLIQUE FORA DO DROPDOWN ---
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -188,7 +188,6 @@ const Escala: React.FC = () => {
         }
     };
 
-    // --- FUNÇÃO DE TOGGLE DO MULTI-SELECT DE EMPRESAS ---
     const toggleEmpresa = (empresa: string) => {
         setFiltroEmpresa(prev => 
             prev.includes(empresa) 
@@ -202,16 +201,13 @@ const Escala: React.FC = () => {
 
     const dadosFiltrados = useMemo(() => {
         return dados.filter(item => {
-            // 1. Filtro de Multiempresa 🔥
             if (filtroEmpresa.length > 0 && !filtroEmpresa.includes(item.empresa)) return false;
 
-            // 2. Filtro de Sentido (ENTRADA/SAÍDA)
             if (filtroSentido) {
                 const sentidoItem = (item.sentido || '').toUpperCase();
                 if (!sentidoItem.includes(filtroSentido)) return false;
             }
             
-            // 3. Filtro de Horário (Turno)
             if (filtroTurno !== 'todos') {
                 const horaStr = item.h_real || '00:00';
                 const horaNum = parseInt(horaStr.split(':')[0], 10); 
@@ -222,7 +218,6 @@ const Escala: React.FC = () => {
                 if (filtroTurno === 'noite' && (horaNum < 18 || horaNum >= 24)) return false;
             }
 
-            // 4. Filtro de Status
             const realizou = item.ra_val && String(item.ra_val).trim() !== '' && String(item.ra_val).trim() !== '0';
             const isCobrir = item.status === 'COBRIR';
 
@@ -237,7 +232,6 @@ const Escala: React.FC = () => {
                 } else if (filtroStatus !== statusItem) return false;
             }
 
-            // 5. Filtro de Busca (Texto)
             if (busca) {
                 const termo = busca.toLowerCase();
                 const texto = `${item.empresa} ${item.rota} ${item.motorista} ${item.frota_escala} ${item.obs}`.toLowerCase();
@@ -248,10 +242,13 @@ const Escala: React.FC = () => {
         });
     }, [dados, filtroEmpresa, filtroStatus, filtroTurno, filtroSentido, busca]);
 
+    // 🔥 KPIs ATUALIZADOS COM CÁLCULO DE TROCAS 🔥
     const kpis = useMemo(() => {
-        let k = { total: 0, confirmados: 0, pendentes: 0, manutencao: 0, aguardando: 0, cobrir: 0 };
+        let k = { 
+            total: 0, confirmados: 0, pendentes: 0, manutencao: 0, aguardando: 0, cobrir: 0,
+            trocaMotorista: 0, trocaFrota: 0, totalTrocas: 0 
+        };
         
-        // 🔥 Ajusta a base de cálculo para aceitar array de empresas
         const baseCalculo = filtroEmpresa.length > 0 
             ? dados.filter(d => filtroEmpresa.includes(d.empresa)) 
             : dados;
@@ -271,6 +268,27 @@ const Escala: React.FC = () => {
 
             if (row.status === 'AGUARDANDO CARRO') k.aguardando++;
             if (isCobrir) k.cobrir++;
+
+            // 1. CÁLCULO TROCA DE MOTORISTA (Baseado no campo reserva)
+            const statusInvalidos = ['CONFIRMADO', 'MANUTENÇÃO', 'COBRIR', 'REALOCADO', 'PENDENTE DE CONFIRMAÇÃO', 'AGUARDANDO CARRO'];
+            const temReserva = row.reserva && 
+                               String(row.reserva).trim() !== '' && 
+                               !statusInvalidos.includes(String(row.reserva).trim().toUpperCase());
+            
+            if (temReserva) {
+                k.trocaMotorista++;
+                k.totalTrocas++;
+            }
+
+            // 2. CÁLCULO TROCA DE FROTA (Baseado em frota diferente)
+            const temTrocaFrota = row.frota_enviada && 
+                                  row.frota_enviada !== '---' && 
+                                  String(row.frota_enviada).trim() !== String(row.frota_escala).trim();
+
+            if (temTrocaFrota) {
+                k.trocaFrota++;
+                k.totalTrocas++;
+            }
         });
         return k;
     }, [dados, filtroEmpresa]);
@@ -457,8 +475,10 @@ const Escala: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- KPI CARDS --- */}
+            {/* --- KPI CARDS (COM NOVAS MÉTRICAS DE TROCA) --- */}
             <div className="kpi-row mb-4">
+                
+                {/* EXISTENTES */}
                 <div className="kpi-card">
                     <div className="kpi-icon text-dark">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -540,12 +560,59 @@ const Escala: React.FC = () => {
                         <span className="kpi-number text-red">{kpis.cobrir}</span>
                     </div>
                 </div>
+
+                {/* 🔥 NOVOS KPIS DE TROCA 🔥 */}
+                <div className="kpi-card">
+                    <div className="kpi-icon" style={{color: '#0dcaf0'}}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <polyline points="16 11 19 14 22 11"></polyline>
+                        </svg>
+                    </div>
+                    <div className="kpi-info">
+                        <span className="kpi-label">TROCA MOTOR.</span>
+                        <span className="kpi-number" style={{color: '#0dcaf0'}}>{kpis.trocaMotorista}</span>
+                    </div>
+                </div>
+
+                <div className="kpi-card">
+                    <div className="kpi-icon" style={{color: '#0dcaf0'}}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="1" y="3" width="15" height="13"></rect>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            <polyline points="16 11 19 14 22 11"></polyline>
+                        </svg>
+                    </div>
+                    <div className="kpi-info">
+                        <span className="kpi-label">TROCA FROTA</span>
+                        <span className="kpi-number" style={{color: '#0dcaf0'}}>{kpis.trocaFrota}</span>
+                    </div>
+                </div>
+
+                <div className="kpi-card">
+                    <div className="kpi-icon" style={{color: '#6f42c1'}}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                            <polyline points="7 23 3 19 7 15"></polyline>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                    </div>
+                    <div className="kpi-info">
+                        <span className="kpi-label">TOTAL TROCAS</span>
+                        <span className="kpi-number" style={{color: '#6f42c1'}}>{kpis.totalTrocas}</span>
+                    </div>
+                </div>
+
             </div>
 
             {/* --- FILTROS --- */}
             <div className="filters-flex mb-4 d-flex gap-2">
                 
-                {/* 🔥 FILTRO CUSTOMIZADO DE MULTIEMPRESA */}
+                {/* FILTRO CUSTOMIZADO DE MULTIEMPRESA */}
                 <div style={{ width: '20%', position: 'relative' }} ref={dropdownRef}>
                     <div 
                         className="form-control red-border d-flex justify-content-between align-items-center"
