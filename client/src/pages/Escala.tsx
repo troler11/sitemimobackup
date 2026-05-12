@@ -52,6 +52,7 @@ const Escala: React.FC = () => {
     // --- ESTADOS DE FILTRO ---
     const [filtroEmpresa, setFiltroEmpresa] = useState('');
     const [filtroStatus, setFiltroStatus] = useState(''); 
+    const [filtroSentido, setFiltroSentido] = useState(''); // 🔥 NOVO ESTADO
     const [busca, setBusca] = useState('');
 const [filtroTurno, setFiltroTurno] = useState('todos');
 
@@ -186,6 +187,13 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
         return dados.filter(item => {
             // 1. Filtro de Empresa
             if (filtroEmpresa && item.empresa !== filtroEmpresa) return false;
+
+            // --- FILTRO DE SENTIDO (ENTRADA/SAÍDA) --- 🔥 NOVO
+           if (filtroSentido) {
+    const sentidoItem = (item.sentido || '').toUpperCase(); // Garante que o dado do banco esteja em maiúsculo
+    // Compara com o valor do filtro (ENT ou SAI)
+    if (!sentidoItem.includes(filtroSentido)) return false;
+}
             
             // 2. Filtro de Horário (Turno) 🔥 NOVO
             if (filtroTurno !== 'todos') {
@@ -225,7 +233,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
             return true;
         });
     // 🔥 IMPORTANTE: Adicione o filtroTurno no final do array de dependências abaixo:
-    }, [dados, filtroEmpresa, filtroStatus, filtroTurno, busca]);
+    }, [dados, filtroEmpresa, filtroStatus, filtroTurno, filtroSentido, busca]);
 
     const kpis = useMemo(() => {
         let k = { total: 0, confirmados: 0, pendentes: 0, manutencao: 0, aguardando: 0, cobrir: 0 };
@@ -283,83 +291,97 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
     };
 
     const salvarEdicao = async (row: ItemEscala) => {
-        setSalvando(true);
+    // 1. Garantimos que os valores originais e novos sejam tratados como string (evita o erro de 'null')
+    const motoristaOriginal = (row.motorista || '').toString();
+    const frotaOriginal = (row.frota_escala || '').toString();
+    const motoristaNovo = (formEdicao.motorista || '').toString();
+    const frotaNova = (formEdicao.frota_enviada || '').toString();
+    const obsNova = (formEdicao.obs || '').toString();
+
+    // 2. Verificamos se houve alteração real
+    const alterouMotorista = motoristaNovo.trim() !== motoristaOriginal.trim();
+    
+    // Consideramos alteração de frota se for diferente da original e não estiver vazio/padrão
+    const alterouFrota = frotaNova.trim() !== frotaOriginal.trim() && 
+                         frotaNova.trim() !== "" && 
+                         frotaNova.trim() !== "---";
+
+    // 3. Bloqueio de segurança: se alterou algo crítico, a observação é obrigatória
+    if ((alterouMotorista || alterouFrota) && !obsNova.trim()) {
+        alert("⚠️ ATENÇÃO: Ao alterar o motorista ou a frota, você deve obrigatoriamente preencher o campo 'Observações' com o motivo.");
+        return; 
+    }
+
+    setSalvando(true);
+    try {
+        let nomeLogado = "Usuário";
+        
         try {
-            let nomeLogado = "Usuário";
-            
-            try {
-                const userDataText = localStorage.getItem('userData'); 
-                if (userDataText) {
-                    const userObj = JSON.parse(userDataText);
-                    nomeLogado = userObj.full_name || userObj.username || "Usuário";
-                }
-            } catch (e) {
-                console.log("Aviso: Falha ao ler o usuário do localStorage.");
+            const userDataText = localStorage.getItem('userData'); 
+            if (userDataText) {
+                const userObj = JSON.parse(userDataText);
+                nomeLogado = userObj.full_name || userObj.username || "Usuário";
             }
-
-            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-            // 🔥 AUTOMAÇÃO DA OBSERVAÇÃO
-            let obsTratada = formEdicao.obs;
-            if (formEdicao.status === 'COBRIR') {
-                obsTratada = 'COBRIR'; // Força a palavra se precisar cobrir
-            } else if (obsTratada.trim().toUpperCase() === 'COBRIR') {
-                obsTratada = ''; // Limpa a palavra se a linha já foi coberta
-            }
-
-            await api.put('/escala/atualizar', {
-                id: row.id, 
-                data_escala: filtroData, 
-                empresa: row.empresa, 
-                rota: row.rota,
-                h_real: row.h_real, 
-                novo_motorista: formEdicao.motorista, 
-                nova_frota: formEdicao.frota_enviada || "",
-                novo_status: formEdicao.status,
-                nova_obs: obsTratada, // 🔥 Usa a observação inteligente aqui
-                usuario_confirmacao: nomeLogado
-            });
-            
-            setDados(prevDados => prevDados.map(item => {
-                if (item.id === row.id) { 
-                    
-                    let novoReserva = item.reserva;
-                    const motTitular = String(item.motorista).trim().toUpperCase();
-                    const motEnviado = String(formEdicao.motorista).trim().toUpperCase();
-
-                    if (motEnviado !== motTitular && motEnviado !== "") {
-                        novoReserva = formEdicao.motorista;
-                    } else {
-                        novoReserva = "";
-                    }
-                    
-                    return { 
-                        ...item, 
-                        reserva: novoReserva,
-                        frota_enviada: formEdicao.frota_enviada || '---',
-                        status: formEdicao.status,
-                        obs: obsTratada, // 🔥 Usa a observação inteligente aqui também
-                        usuario_confirmacao: nomeLogado, 
-                        hora_confirmacao: horaAtual,     
-                        manutencao: formEdicao.status === 'MANUTENÇÃO' ? 'sim' : '', 
-                        aguardando: formEdicao.status === 'AGUARDANDO CARRO' ? 'sim' : '',
-                        cobrir: formEdicao.status === 'COBRIR' ? 'sim' : '' ,
-                        confirmado: formEdicao.status === 'CONFIRMADO' ? 'sim' : '',
-                        realocado: formEdicao.status === 'REALOCADO' ? 'sim' : '' ,
-                    };
-                }
-                return item;
-            }));
-            
-            setLinhaEmEdicao(null);
-        } catch (err: any) {
-            console.error("Erro ao salvar:", err);
-            const msgErro = err.response?.data?.error || "Erro ao salvar as alterações.";
-            alert(msgErro);
-        } finally {
-            setSalvando(false);
+        } catch (e) {
+            console.error("Erro ao ler o usuário do localStorage.");
         }
-    };
+
+        const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        // Automação inteligente da observação
+        let obsTratada = obsNova;
+        if (formEdicao.status === 'COBRIR') {
+            obsTratada = 'COBRIR';
+        } else if (obsTratada.trim().toUpperCase() === 'COBRIR') {
+            obsTratada = '';
+        }
+
+        await api.put('/escala/atualizar', {
+            id: row.id, 
+            data_escala: filtroData, 
+            empresa: row.empresa, 
+            rota: row.rota,
+            h_real: row.h_real, 
+            novo_motorista: motoristaNovo, 
+            nova_frota: frotaNova,
+            novo_status: formEdicao.status,
+            nova_obs: obsTratada,
+            usuario_confirmacao: nomeLogado
+        });
+        
+        setDados(prevDados => prevDados.map(item => {
+            if (item.id === row.id) { 
+                const motTitular = String(item.motorista || '').trim().toUpperCase();
+                const motEnviado = motoristaNovo.trim().toUpperCase();
+
+                const novoReserva = (motEnviado !== motTitular && motEnviado !== "") ? motoristaNovo : "";
+                
+                return { 
+                    ...item, 
+                    reserva: novoReserva,
+                    frota_enviada: frotaNova || '---',
+                    status: formEdicao.status,
+                    obs: obsTratada,
+                    usuario_confirmacao: nomeLogado, 
+                    hora_confirmacao: horaAtual,     
+                    manutencao: formEdicao.status === 'MANUTENÇÃO' ? 'sim' : '', 
+                    aguardando: formEdicao.status === 'AGUARDANDO CARRO' ? 'sim' : '',
+                    cobrir: formEdicao.status === 'COBRIR' ? 'sim' : '' ,
+                    confirmado: formEdicao.status === 'CONFIRMADO' ? 'sim' : '',
+                    realocado: formEdicao.status === 'REALOCADO' ? 'sim' : '' ,
+                };
+            }
+            return item;
+        }));
+        
+        setLinhaEmEdicao(null);
+    } catch (err: any) {
+        console.error("Erro ao salvar:", err);
+        alert(err.response?.data?.error || "Erro ao salvar as alterações.");
+    } finally {
+        setSalvando(false);
+    }
+};
 
     return (
         <div className="main-content">
@@ -551,6 +573,16 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                         <option value="noite">Noite (18h-00h)</option>
                     </select>
                 </div>
+                
+                    {/* 🔥 DROPDOWN DE SENTIDO */}
+                <div style={{width: '15%'}}>
+                    <select className="form-select red-border" value={filtroSentido} onChange={e => setFiltroSentido(e.target.value)}>
+                        <option value="">Sentido: Todos</option>
+                        <option value="ENT">Entrada</option>
+                        <option value="SAI">Saída</option>
+                    </select>
+                </div>
+                
 
                 <div style={{width: '20%'}}>
                     <select className="form-select red-border" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
