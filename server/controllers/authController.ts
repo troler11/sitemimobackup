@@ -66,7 +66,7 @@ export const loginUnificado = async (req: Request, res: Response) => {
         }
 
         // 3. SE CHEGOU AQUI, NADA DEU CERTO
-        await registrarLogLogin(req, identifier || 'VAZIO', 'UNIFICADO', 'FALHA', 'Credenciais inválidas');
+        await registrarLogLogin(req, identifier || 'VAZIO', 'PAINEL', 'FALHA', 'Erro interno no login unificado');
         return res.status(401).json({ message: 'Usuário/CPF ou senha incorretos.' });
 
     } catch (error) {
