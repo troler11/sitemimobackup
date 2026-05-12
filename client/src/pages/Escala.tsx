@@ -12,7 +12,7 @@ const colors = {
     textGray: '#6b7280',
     textDark: '#111827',
     border: '#e5e7eb'
-  };
+};
 
 interface ItemEscala {
     id: number; 
@@ -50,12 +50,14 @@ const Escala: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- ESTADOS DE FILTRO ---
-    const [filtroEmpresa, setFiltroEmpresa] = useState('');
-    const [filtroStatus, setFiltroStatus] = useState(''); 
-    const [filtroSentido, setFiltroSentido] = useState(''); // 🔥 NOVO ESTADO
-    const [busca, setBusca] = useState('');
-const [filtroTurno, setFiltroTurno] = useState('todos');
+    const [filtroEmpresa, setFiltroEmpresa] = useState<string[]>([]); // 🔥 AGORA É UM ARRAY
+    const [dropdownEmpresaAberto, setDropdownEmpresaAberto] = useState(false); // 🔥 CONTROLA O DROPDOWN CUSTOMIZADO
+    const dropdownRef = useRef<HTMLDivElement>(null); // 🔥 DETECTA CLIQUE FORA DO DROPDOWN
 
+    const [filtroStatus, setFiltroStatus] = useState(''); 
+    const [filtroSentido, setFiltroSentido] = useState('');
+    const [busca, setBusca] = useState('');
+    const [filtroTurno, setFiltroTurno] = useState('todos');
 
     // --- ESTADOS PARA EDIÇÃO ---
     const [linhaEmEdicao, setLinhaEmEdicao] = useState<number | null>(null);
@@ -122,6 +124,17 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
         fetchMotoristas();
     }, []);
 
+    // --- DETECTA CLIQUE FORA DO DROPDOWN DE EMPRESAS ---
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownEmpresaAberto(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // --- FUNÇÕES DO AUTOCOMPLETE ---
     const sugestoesFiltradas = useMemo(() => {
         if (!formEdicao.motorista) return listaMotoristas;
@@ -135,23 +148,20 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
     };
 
     const handleDeleteEscala = async () => {
-    // 🔥 Trocamos dataFiltro por filtroData
-    const confirmar = window.confirm(`Tem certeza que deseja excluir toda a escala do dia ${filtroData}? Esta ação não pode ser desfeita.`);
-    if (!confirmar) return;
+        const confirmar = window.confirm(`Tem certeza que deseja excluir toda a escala do dia ${filtroData}? Esta ação não pode ser desfeita.`);
+        if (!confirmar) return;
 
-    try {
-        // 🔥 Trocamos dataFiltro por filtroData
-        const response = await api.delete(`/escala?data=${filtroData}`); // Se você usar axios direto, mude 'api' para 'axios'
+        try {
+            const response = await api.delete(`/escala?data=${filtroData}`); 
 
-        if (response.data.success) {
-            alert(response.data.message);
-            // 🔥 Trocamos buscarDadosEscala() por fetchData(false)
-            fetchData(false); 
+            if (response.data.success) {
+                alert(response.data.message);
+                fetchData(false); 
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.error || "Erro ao tentar excluir a escala.");
         }
-    } catch (error: any) {
-        alert(error.response?.data?.error || "Erro ao tentar excluir a escala.");
-    }
-};
+    };
 
     // --- FUNÇÃO DE IMPORTAÇÃO DE EXCEL ---
     const handleImportarExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,24 +170,31 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
 
         const formData = new FormData();
         formData.append('file', file);
-        // Opcional: Se quiser mandar a data selecionada no input para o backend
         formData.append('data_escala', filtroData); 
 
         setImportando(true);
         try {
-            // OBS: Você precisará criar essa rota no backend recebendo Multer (multipart/form-data)
             await api.post('/escala/importar', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             alert('Escala importada com sucesso!');
-            fetchData(false); // Recarrega a tabela
+            fetchData(false); 
         } catch (err: any) {
             console.error("Erro ao importar escala:", err);
             alert(err.response?.data?.error || 'Erro ao importar o arquivo. Verifique o formato.');
         } finally {
             setImportando(false);
-            if (fileInputRef.current) fileInputRef.current.value = ''; // Limpa o input file
+            if (fileInputRef.current) fileInputRef.current.value = ''; 
         }
+    };
+
+    // --- FUNÇÃO DE TOGGLE DO MULTI-SELECT DE EMPRESAS ---
+    const toggleEmpresa = (empresa: string) => {
+        setFiltroEmpresa(prev => 
+            prev.includes(empresa) 
+                ? prev.filter(e => e !== empresa) 
+                : [...prev, empresa]
+        );
     };
 
     // --- PROCESSAMENTO DE DADOS (MEMOIZADOS) ---
@@ -185,31 +202,28 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
 
     const dadosFiltrados = useMemo(() => {
         return dados.filter(item => {
-            // 1. Filtro de Empresa
-            if (filtroEmpresa && item.empresa !== filtroEmpresa) return false;
+            // 1. Filtro de Multiempresa 🔥
+            if (filtroEmpresa.length > 0 && !filtroEmpresa.includes(item.empresa)) return false;
 
-            // --- FILTRO DE SENTIDO (ENTRADA/SAÍDA) --- 🔥 NOVO
-           if (filtroSentido) {
-    const sentidoItem = (item.sentido || '').toUpperCase(); // Garante que o dado do banco esteja em maiúsculo
-    // Compara com o valor do filtro (ENT ou SAI)
-    if (!sentidoItem.includes(filtroSentido)) return false;
-}
+            // 2. Filtro de Sentido (ENTRADA/SAÍDA)
+            if (filtroSentido) {
+                const sentidoItem = (item.sentido || '').toUpperCase();
+                if (!sentidoItem.includes(filtroSentido)) return false;
+            }
             
-            // 2. Filtro de Horário (Turno) 🔥 NOVO
+            // 3. Filtro de Horário (Turno)
             if (filtroTurno !== 'todos') {
                 const horaStr = item.h_real || '00:00';
-                const horaNum = parseInt(horaStr.split(':')[0], 10); // Pega só a hora (ex: "04:30" vira 4)
+                const horaNum = parseInt(horaStr.split(':')[0], 10); 
 
-                // Madrugada configurada das 00:00 até 03:59 (ajuste se a sua madrugada for até as 04:59)
                 if (filtroTurno === 'madrugada' && (horaNum < 0 || horaNum >= 4)) return false;
                 if (filtroTurno === 'manha' && (horaNum < 4 || horaNum >= 12)) return false;
                 if (filtroTurno === 'tarde' && (horaNum < 12 || horaNum >= 18)) return false;
                 if (filtroTurno === 'noite' && (horaNum < 18 || horaNum >= 24)) return false;
             }
 
-            // 3. Filtro de Status
+            // 4. Filtro de Status
             const realizou = item.ra_val && String(item.ra_val).trim() !== '' && String(item.ra_val).trim() !== '0';
-            const obsTexto = (item.obs || '').toLowerCase();
             const isCobrir = item.status === 'COBRIR';
 
             let statusItem = 'pendente';
@@ -223,7 +237,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                 } else if (filtroStatus !== statusItem) return false;
             }
 
-            // 4. Filtro de Busca (Texto)
+            // 5. Filtro de Busca (Texto)
             if (busca) {
                 const termo = busca.toLowerCase();
                 const texto = `${item.empresa} ${item.rota} ${item.motorista} ${item.frota_escala} ${item.obs}`.toLowerCase();
@@ -232,17 +246,19 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
             
             return true;
         });
-    // 🔥 IMPORTANTE: Adicione o filtroTurno no final do array de dependências abaixo:
     }, [dados, filtroEmpresa, filtroStatus, filtroTurno, filtroSentido, busca]);
 
     const kpis = useMemo(() => {
         let k = { total: 0, confirmados: 0, pendentes: 0, manutencao: 0, aguardando: 0, cobrir: 0 };
-        const baseCalculo = filtroEmpresa ? dados.filter(d => d.empresa === filtroEmpresa) : dados;
+        
+        // 🔥 Ajusta a base de cálculo para aceitar array de empresas
+        const baseCalculo = filtroEmpresa.length > 0 
+            ? dados.filter(d => filtroEmpresa.includes(d.empresa)) 
+            : dados;
 
         baseCalculo.forEach(row => {
             k.total++;
             const realizou = row.ra_val && String(row.ra_val).trim() !== '' && String(row.ra_val).trim() !== '0';
-            const obsTexto = (row.obs || '').toLowerCase();
             const isCobrir = row.status === 'COBRIR';
 
             if (row.status === 'MANUTENÇÃO') {
@@ -291,97 +307,90 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
     };
 
     const salvarEdicao = async (row: ItemEscala) => {
-    // 1. Garantimos que os valores originais e novos sejam tratados como string (evita o erro de 'null')
-    const motoristaOriginal = (row.motorista || '').toString();
-    const frotaOriginal = (row.frota_escala || '').toString();
-    const motoristaNovo = (formEdicao.motorista || '').toString();
-    const frotaNova = (formEdicao.frota_enviada || '').toString();
-    const obsNova = (formEdicao.obs || '').toString();
+        const motoristaOriginal = (row.motorista || '').toString();
+        const frotaOriginal = (row.frota_escala || '').toString();
+        const motoristaNovo = (formEdicao.motorista || '').toString();
+        const frotaNova = (formEdicao.frota_enviada || '').toString();
+        const obsNova = (formEdicao.obs || '').toString();
 
-    // 2. Verificamos se houve alteração real
-    const alterouMotorista = motoristaNovo.trim() !== motoristaOriginal.trim();
-    
-    // Consideramos alteração de frota se for diferente da original e não estiver vazio/padrão
-    const alterouFrota = frotaNova.trim() !== frotaOriginal.trim() && 
-                         frotaNova.trim() !== "" && 
-                         frotaNova.trim() !== "---";
+        const alterouMotorista = motoristaNovo.trim() !== motoristaOriginal.trim();
+        const alterouFrota = frotaNova.trim() !== frotaOriginal.trim() && 
+                             frotaNova.trim() !== "" && 
+                             frotaNova.trim() !== "---";
 
-    // 3. Bloqueio de segurança: se alterou algo crítico, a observação é obrigatória
-    if ((alterouMotorista || alterouFrota) && !obsNova.trim()) {
-        alert("⚠️ ATENÇÃO: Ao alterar o motorista ou a frota, você deve obrigatoriamente preencher o campo 'Observações' com o motivo.");
-        return; 
-    }
+        if ((alterouMotorista || alterouFrota) && !obsNova.trim()) {
+            alert("⚠️ ATENÇÃO: Ao alterar o motorista ou a frota, você deve obrigatoriamente preencher o campo 'Observações' com o motivo.");
+            return; 
+        }
 
-    setSalvando(true);
-    try {
-        let nomeLogado = "Usuário";
-        
+        setSalvando(true);
         try {
-            const userDataText = localStorage.getItem('userData'); 
-            if (userDataText) {
-                const userObj = JSON.parse(userDataText);
-                nomeLogado = userObj.full_name || userObj.username || "Usuário";
+            let nomeLogado = "Usuário";
+            
+            try {
+                const userDataText = localStorage.getItem('userData'); 
+                if (userDataText) {
+                    const userObj = JSON.parse(userDataText);
+                    nomeLogado = userObj.full_name || userObj.username || "Usuário";
+                }
+            } catch (e) {
+                console.error("Erro ao ler o usuário do localStorage.");
             }
-        } catch (e) {
-            console.error("Erro ao ler o usuário do localStorage.");
-        }
 
-        const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        // Automação inteligente da observação
-        let obsTratada = obsNova;
-        if (formEdicao.status === 'COBRIR') {
-            obsTratada = 'COBRIR';
-        } else if (obsTratada.trim().toUpperCase() === 'COBRIR') {
-            obsTratada = '';
-        }
-
-        await api.put('/escala/atualizar', {
-            id: row.id, 
-            data_escala: filtroData, 
-            empresa: row.empresa, 
-            rota: row.rota,
-            h_real: row.h_real, 
-            novo_motorista: motoristaNovo, 
-            nova_frota: frotaNova,
-            novo_status: formEdicao.status,
-            nova_obs: obsTratada,
-            usuario_confirmacao: nomeLogado
-        });
-        
-        setDados(prevDados => prevDados.map(item => {
-            if (item.id === row.id) { 
-                const motTitular = String(item.motorista || '').trim().toUpperCase();
-                const motEnviado = motoristaNovo.trim().toUpperCase();
-
-                const novoReserva = (motEnviado !== motTitular && motEnviado !== "") ? motoristaNovo : "";
-                
-                return { 
-                    ...item, 
-                    reserva: novoReserva,
-                    frota_enviada: frotaNova || '---',
-                    status: formEdicao.status,
-                    obs: obsTratada,
-                    usuario_confirmacao: nomeLogado, 
-                    hora_confirmacao: horaAtual,     
-                    manutencao: formEdicao.status === 'MANUTENÇÃO' ? 'sim' : '', 
-                    aguardando: formEdicao.status === 'AGUARDANDO CARRO' ? 'sim' : '',
-                    cobrir: formEdicao.status === 'COBRIR' ? 'sim' : '' ,
-                    confirmado: formEdicao.status === 'CONFIRMADO' ? 'sim' : '',
-                    realocado: formEdicao.status === 'REALOCADO' ? 'sim' : '' ,
-                };
+            let obsTratada = obsNova;
+            if (formEdicao.status === 'COBRIR') {
+                obsTratada = 'COBRIR';
+            } else if (obsTratada.trim().toUpperCase() === 'COBRIR') {
+                obsTratada = '';
             }
-            return item;
-        }));
-        
-        setLinhaEmEdicao(null);
-    } catch (err: any) {
-        console.error("Erro ao salvar:", err);
-        alert(err.response?.data?.error || "Erro ao salvar as alterações.");
-    } finally {
-        setSalvando(false);
-    }
-};
+
+            await api.put('/escala/atualizar', {
+                id: row.id, 
+                data_escala: filtroData, 
+                empresa: row.empresa, 
+                rota: row.rota,
+                h_real: row.h_real, 
+                novo_motorista: motoristaNovo, 
+                nova_frota: frotaNova,
+                novo_status: formEdicao.status,
+                nova_obs: obsTratada,
+                usuario_confirmacao: nomeLogado
+            });
+            
+            setDados(prevDados => prevDados.map(item => {
+                if (item.id === row.id) { 
+                    const motTitular = String(item.motorista || '').trim().toUpperCase();
+                    const motEnviado = motoristaNovo.trim().toUpperCase();
+                    const novoReserva = (motEnviado !== motTitular && motEnviado !== "") ? motoristaNovo : "";
+                    
+                    return { 
+                        ...item, 
+                        reserva: novoReserva,
+                        frota_enviada: frotaNova || '---',
+                        status: formEdicao.status,
+                        obs: obsTratada,
+                        usuario_confirmacao: nomeLogado, 
+                        hora_confirmacao: horaAtual,     
+                        manutencao: formEdicao.status === 'MANUTENÇÃO' ? 'sim' : '', 
+                        aguardando: formEdicao.status === 'AGUARDANDO CARRO' ? 'sim' : '',
+                        cobrir: formEdicao.status === 'COBRIR' ? 'sim' : '' ,
+                        confirmado: formEdicao.status === 'CONFIRMADO' ? 'sim' : '',
+                        realocado: formEdicao.status === 'REALOCADO' ? 'sim' : '' ,
+                    };
+                }
+                return item;
+            }));
+            
+            setLinhaEmEdicao(null);
+        } catch (err: any) {
+            console.error("Erro ao salvar:", err);
+            alert(err.response?.data?.error || "Erro ao salvar as alterações.");
+        } finally {
+            setSalvando(false);
+        }
+    };
 
     return (
         <div className="main-content">
@@ -406,40 +415,22 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
 
                      <RefreshCcw size={18} onClick={() => fetchData(false)} style={{ cursor: 'pointer', color: colors.textGray }} />
                     
-                    {/* 🔥 BOTÕES DE AÇÃO: Só aparecem para Admin e Escalante */}
                     {(userRole === 'admin' || userRole === 'escalante') && (
                         <>
-                            {/* Botão de Excluir o Dia */}
                             <button 
                                 className="btn btn-danger" 
                                 title="Excluir Escala do Dia"
                                 onClick={handleDeleteEscala}
-                                style={{ 
-                                    cursor: 'pointer', 
-                                    height: '100%', 
-                                    margin: 0, 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '8px' 
-                                }}
+                                style={{ cursor: 'pointer', height: '100%', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
-                                {/* Lembre-se de importar o Trash2 do lucide-react lá em cima! */}
                                 <Trash2 size={18} />
                                 <span>Excluir</span>
                             </button>
 
-                            {/* Botão de Importação */}
                             <label 
                                 className="btn btn-success" 
                                 title="Importar Excel (XLSX)" 
-                                style={{ 
-                                    cursor: 'pointer', 
-                                    height: '100%', 
-                                    margin: 0, 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '8px' 
-                                }}
+                                style={{ cursor: 'pointer', height: '100%', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
                                 {importando ? (
                                     <>
@@ -452,7 +443,6 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                         <span>Nova Escala</span>
                                     </>
                                 )}
-
                                 <input 
                                     type="file" 
                                     accept=".xlsx, .xls" 
@@ -469,7 +459,6 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
 
             {/* --- KPI CARDS --- */}
             <div className="kpi-row mb-4">
-                
                 <div className="kpi-card">
                     <div className="kpi-icon text-dark">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -554,16 +543,69 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
             </div>
 
             {/* --- FILTROS --- */}
-            {/* --- FILTROS --- */}
             <div className="filters-flex mb-4 d-flex gap-2">
-                <div style={{width: '20%'}}>
-                    <select className="form-select red-border" value={filtroEmpresa} onChange={e => setFiltroEmpresa(e.target.value)}>
-                        <option value="">Todas as Empresas</option>
-                        {empresasUnicas.map(e => <option key={e} value={e}>{e}</option>)}
-                    </select>
+                
+                {/* 🔥 FILTRO CUSTOMIZADO DE MULTIEMPRESA */}
+                <div style={{ width: '20%', position: 'relative' }} ref={dropdownRef}>
+                    <div 
+                        className="form-control red-border d-flex justify-content-between align-items-center"
+                        onClick={() => setDropdownEmpresaAberto(!dropdownEmpresaAberto)}
+                        style={{ cursor: 'pointer', backgroundColor: '#fff', height: '38px' }}
+                    >
+                        <span className="text-truncate" style={{ fontSize: '0.9rem', color: filtroEmpresa.length > 0 ? colors.textDark : colors.textGray }}>
+                            {filtroEmpresa.length === 0 
+                                ? "Todas as Empresas" 
+                                : filtroEmpresa.length === 1 
+                                ? filtroEmpresa[0] 
+                                : `${filtroEmpresa.length} empresas selec.`}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: colors.textGray }}>▼</span>
+                    </div>
+
+                    {dropdownEmpresaAberto && (
+                        <div 
+                            className="position-absolute bg-white border shadow-sm mt-1 w-100" 
+                            style={{ 
+                                zIndex: 1050, 
+                                maxHeight: '250px', 
+                                overflowY: 'auto', 
+                                borderRadius: '6px' 
+                            }}
+                        >
+                            {filtroEmpresa.length > 0 && (
+                                <div 
+                                    className="p-2 border-bottom text-center text-primary"
+                                    style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: '#f8f9fa' }}
+                                    onClick={() => setFiltroEmpresa([])}
+                                >
+                                    Limpar Seleção
+                                </div>
+                            )}
+                            {empresasUnicas.map(e => (
+                                <div 
+                                    key={e} 
+                                    className="px-3 py-2 border-bottom d-flex align-items-center gap-2 custom-hover"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={(ev) => {
+                                        ev.stopPropagation(); 
+                                        toggleEmpresa(e);
+                                    }}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        className="form-check-input mt-0"
+                                        checked={filtroEmpresa.includes(e)} 
+                                        readOnly 
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '0.9rem', userSelect: 'none' }}>{e}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 
-                {/* 🔥 NOVO DROPDOWN DE HORÁRIOS */}
+                {/* HORÁRIOS */}
                 <div style={{width: '20%'}}>
                     <select className="form-select red-border" value={filtroTurno} onChange={e => setFiltroTurno(e.target.value)}>
                         <option value="todos">Todos os Horários</option>
@@ -574,7 +616,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                     </select>
                 </div>
                 
-                    {/* 🔥 DROPDOWN DE SENTIDO */}
+                {/* SENTIDO */}
                 <div style={{width: '15%'}}>
                     <select className="form-select red-border" value={filtroSentido} onChange={e => setFiltroSentido(e.target.value)}>
                         <option value="">Sentido: Todos</option>
@@ -582,8 +624,8 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                         <option value="SAI">Saída</option>
                     </select>
                 </div>
-                
 
+                {/* STATUS VISUAL */}
                 <div style={{width: '20%'}}>
                     <select className="form-select red-border" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
                         <option value="">Status Visual: Todos</option>
@@ -594,6 +636,8 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                         <option value="cobrir">Cobrir</option>
                     </select>
                 </div>
+
+                {/* BUSCA */}
                 <div style={{flex: 1}}>
                     <input 
                         type="text" 
@@ -629,14 +673,13 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                             <tr><td colSpan={10} className="text-center py-5 text-muted">Nenhum registro encontrado.</td></tr>
                         ) : (
                             dadosFiltrados.map((row, i) => {
-                                const realizou = row.ra_val && String(row.ra_val).trim() !== '' && String(row.ra_val).trim() !== '0';
-                                 const isCobrir = row.status === 'COBRIR';
                                 const emEdicao = linhaEmEdicao === i; 
+                                const isCobrir = row.status === 'COBRIR';
                                 
                                 return (
                                    <tr key={i} className={emEdicao ? 'table-warning' : isCobrir ? 'table-danger' : ''}>
 
-                                         {/* STATUS COM DROPDOWN */}
+                                       {/* STATUS */}
                                        <td className="text-center">
                                             {emEdicao ? (
                                                 <select 
@@ -654,7 +697,6 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                                 </select>
                                             ) : (
                                                row.status === 'MANUTENÇÃO' ? <span className="badge badge-red">Manutenção</span> :
-                                               
                                                row.status === 'CONFIRMADO' ? (
                                                    <span 
                                                        className="badge badge-green" 
@@ -664,16 +706,15 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                                        CONFIRMADO
                                                    </span>
                                                ) :
-                                               
                                                row.status === 'AGUARDANDO CARRO' ? <span className="badge badge-warning text-dark">Aguardando</span> :
-                                             row.status === 'CANCELADA' ? <span className="badge badge-dark text-light">Cancelada</span> :
+                                               row.status === 'CANCELADA' ? <span className="badge badge-dark text-light">Cancelada</span> :
                                                row.status === 'REALOCADO' ? <span className="badge badge-info text-dark">Realocado</span> : 
                                                row.status === 'COBRIR' ? <span className="badge badge-dark" style={{background: '#6f42c1', color: '#fff'}}>Cobrir</span> :
                                                <span className="badge badge-dark">Pendente</span>
                                             )} 
                                         </td>
                                         
-                                        {/* MOTORISTA COM AUTOCOMPLETE */}
+                                        {/* MOTORISTA */}
                                         <td style={{ position: 'relative' }}>
                                             {emEdicao ? (
                                                 <>
@@ -719,41 +760,33 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                             )}
                                         </td>
 
-                                          {/* EMPRESA */}
+                                        {/* EMPRESA */}
                                         <td>
                                             <div className="fw-bold text-dark">{row.empresa}</div>
                                         </td>
                                         
                                         {/* LINHA */}
                                         <td>
-                                        <div className="fw-bold text-dark" style={{maxWidth: '250px'}} title={row.rota}>
+                                            <div className="fw-bold text-dark" style={{maxWidth: '250px'}} title={row.rota}>
                                                 {row.rota}
                                             </div>
                                         </td>
                                       
                                         {/* SENTIDO */}
                                         <td>
-                                        <div className="fw-bold text-dark" style={{maxWidth: '250px'}} title={row.sentido}>
+                                            <div className="fw-bold text-dark" style={{maxWidth: '250px'}} title={row.sentido}>
                                                 {row.sentido}
                                             </div>
                                         </td>
                                         
-                                    {/* INICIO */}
-                                         <td className="text-end">
+                                        {/* INICIO */}
+                                        <td className="text-end">
                                             <div className="fw-bold text-dark">{row.h_real}</div>
-                                            {(row.h_real && row.h_real.length > 2) && (
-                                                <div className={row.h_real > row.h_real ? 'text-red fw-bold small' : 'text-green fw-bold small'}>
-                                                </div>
-                                            )}
                                         </td>
 
-                                          {/* FIM */}
+                                        {/* FIM */}
                                         <td className="text-end">
                                             <div className="fw-bold text-dark">{row.hr_sai}</div>
-                                            {(row.h_real && row.h_real.length > 2) && (
-                                                <div className={row.hr_sai > row.hr_sai ? 'text-red fw-bold small' : 'text-green fw-bold small'}>
-                                                </div>
-                                            )}
                                         </td>
                                         
                                        {/* FROTA */}
@@ -768,10 +801,7 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                                 />
                                             ) : (
                                                 <div className="d-flex flex-column align-items-left">
-                                                    {/* Frota programada */}
                                                     <span className="badge badge-dark">{row.frota_escala}</span>
-                                                    
-                                                    {/* Só exibe a frota de baixo se ela for preenchida E diferente da programada */}
                                                     {(row.frota_enviada && 
                                                       row.frota_enviada !== '---' && 
                                                       String(row.frota_enviada).trim() !== String(row.frota_escala).trim()) && (
@@ -803,19 +833,15 @@ const [filtroTurno, setFiltroTurno] = useState('todos');
                                             )}
                                         </td>
 
+                                        {/* AÇÕES */}
                                         <td className="text-center">
                                             {emEdicao ? (
                                                 <div className="d-flex gap-1 justify-content-center">
-
                                                      <Save size={16} onClick={() => salvarEdicao(row)} style={{ cursor: 'pointer', color: colors.textGray }} />
-
-                                                    
                                                     <Ban size={16} onClick={() => cancelarEdicao()} style={{ cursor: 'pointer', color: colors.textGray }} />
                                                 </div>
                                             ) : (
-
-                                        <Edit2 size={16} onClick={() => iniciarEdicao(i, row)} style={{ cursor: 'pointer', color: colors.textGray }} />
-                                               
+                                                <Edit2 size={16} onClick={() => iniciarEdicao(i, row)} style={{ cursor: 'pointer', color: colors.textGray }} />
                                             )}
                                         </td>
                                         
