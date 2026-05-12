@@ -53,14 +53,11 @@ export const registrarAcaoMotorista = async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
         const nomeMotorista = String(user?.full_name || "Motorista App").trim();
-        
         const validData = acaoMotoristaSchema.parse(req.body);
 
         const horaFiltro = validData.h_real.substring(0, 5);
         const horaConfirmacao = new Date().toLocaleTimeString('pt-BR', { 
-            timeZone: 'America/Sao_Paulo', 
-            hour: '2-digit', 
-            minute: '2-digit' 
+            timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' 
         });
 
         let statusFinal = '';
@@ -70,68 +67,33 @@ export const registrarAcaoMotorista = async (req: Request, res: Response) => {
         if (validData.acao === 'CONFIRMAR') {
             statusFinal = 'CONFIRMADO';
             frotaParaSalvar = validData.veiculo ? String(validData.veiculo).trim() : null;
-            
-            if (!frotaParaSalvar) {
-                return res.status(400).json({ error: "Para confirmar, informe o prefixo do veículo." });
-            }
+            if (!frotaParaSalvar) return res.status(400).json({ error: "Informe o prefixo." });
         } else {
             statusFinal = 'COBRIR';
-            observacaoParaSalvar = validData.motivo || 'COBRIR';
+            observacaoParaSalvar = validData.motivo ? String(validData.motivo).trim() : 'Não informado';
         }
 
         const updateQuery = `
             UPDATE escalas 
             SET 
                 status = $1::text,
-                -- Convertemos o parâmetro $2 para inteiro para combinar com a coluna do banco
-                frota_enviada = CASE 
-                    WHEN $1::text = 'CONFIRMADO' THEN NULLIF($2, '')::integer 
-                    ELSE frota_enviada 
-                END,
-                frota_final = CASE 
-                    WHEN $1::text = 'CONFIRMADO' THEN NULLIF($2, '')::integer 
-                    ELSE frota_final 
-                END,
-                reserva = CASE 
-                    WHEN $1::text = 'COBRIR' THEN $3::text 
-                    ELSE reserva 
-                END,
-                obs = CASE 
-                    WHEN $1::text = 'COBRIR' THEN $4::text 
-                    ELSE obs 
-                END,
+                frota_enviada = CASE WHEN $1::text = 'CONFIRMADO' THEN NULLIF($2, '')::integer ELSE frota_enviada END,
+                frota_final = CASE WHEN $1::text = 'CONFIRMADO' THEN NULLIF($2, '')::integer ELSE frota_final END,
+                obs = CASE WHEN $1::text = 'COBRIR' THEN $4::text ELSE obs END,
                 usuario_confirmacao = $3::text,
                 hora_confirmacao = $5::text
-            WHERE 
-                data_escala = $6 AND 
-                empresa = $7 AND 
-                rota = $8 AND 
-                h_real::text LIKE $9 || '%'
+            WHERE data_escala = $6 AND empresa = $7 AND rota = $8 AND h_real::text LIKE $9 || '%'
         `;
 
         const result = await pool.query(updateQuery, [
-            statusFinal,            // $1
-            frotaParaSalvar,        // $2
-            nomeMotorista,          // $3
-            observacaoParaSalvar,   // $4
-            horaConfirmacao,        // $5
-            validData.data_escala,  // $6
-            validData.empresa,      // $7
-            validData.rota,         // $8
-            horaFiltro              // $9
+            statusFinal, frotaParaSalvar, nomeMotorista, observacaoParaSalvar, 
+            horaConfirmacao, validData.data_escala, validData.empresa, validData.rota, horaFiltro
         ]);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: "Viagem não encontrada." });
-        }
+        if (result.rowCount === 0) return res.status(404).json({ error: "Viagem não encontrada." });
+        return res.status(200).json({ success: true, message: "Ação registrada!" });
 
-        return res.status(200).json({ success: true, message: "Gravado com sucesso!" });
-
-    } catch (error: any) { 
-        console.error("🚨 ERRO:", error.message);
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: "Dados inválidos.", detalhes: error.errors });
-        }
+    } catch (error: any) {
         return res.status(500).json({ error: 'Erro ao gravar no banco.' });
     }
 };
