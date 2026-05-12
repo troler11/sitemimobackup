@@ -58,35 +58,50 @@ const MinhaEscala: React.FC = () => {
     const abrirModal = (linha: LinhaMotorista, tipo: 'CONFIRMAR' | 'COBRIR') => {
         setValorInput(tipo === 'CONFIRMAR' && linha.frota_escala !== '---' ? linha.frota_escala : '');
         setModalConfig({ show: true, tipo, linha });
-    };
+    };const abrirModal = (linha: LinhaMotorista, tipo: 'CONFIRMAR' | 'COBRIR') => {
+    // 🔥 Forçamos o valor a ser sempre uma STRING usando String(...)
+    // Isso evita que um prefixo numérico (ex: 580) quebre o .trim() depois
+    const valorInicial = tipo === 'CONFIRMAR' && linha.frota_escala && linha.frota_escala !== '---' 
+        ? String(linha.frota_escala) 
+        : '';
+        
+    setValorInput(valorInicial);
+    setModalConfig({ show: true, tipo, linha });
+};
 
-    const handleEnviarAcao = async () => {
-        if (!valorInput.trim()) {
-            alert(modalConfig.tipo === 'CONFIRMAR' ? "Informe o veículo." : "Informe o motivo.");
-            return;
-        }
+// --- ENVIAR AÇÃO (AJUSTADO) ---
+const handleEnviarAcao = async () => {
+    // 🔥 Garantimos que valorInput seja tratado como string antes do trim
+    const textoInput = String(valorInput || '');
 
-        setEnviando(true);
-        try {
-            await api.post('/app-motorista/acao', {
-                data_escala: dataFiltro,
-                empresa: modalConfig.linha?.empresa,
-                rota: modalConfig.linha?.rota,
-                h_real: modalConfig.linha?.h_real,
-                veiculo: modalConfig.tipo === 'CONFIRMAR' ? valorInput.toUpperCase() : null,
-                motivo: modalConfig.tipo === 'COBRIR' ? valorInput : null,
-                acao: modalConfig.tipo
-            });
+    if (!textoInput.trim()) {
+        alert(modalConfig.tipo === 'CONFIRMAR' ? "Por favor, informe o veículo." : "Por favor, informe o motivo.");
+        return;
+    }
 
-            setModalConfig({ show: false, tipo: 'CONFIRMAR', linha: null });
-            setValorInput('');
-            fetchMinhaEscala();
-        } catch (error: any) {
-            alert(error.response?.data?.error || "Erro ao registrar ação.");
-        } finally {
-            setEnviando(false);
-        }
-    };
+    setEnviando(true);
+    try {
+        await api.post('/app-motorista/acao', {
+            data_escala: dataFiltro,
+            empresa: modalConfig.linha?.empresa,
+            rota: modalConfig.linha?.rota,
+            h_real: modalConfig.linha?.h_real,
+            // Enviamos o valor já limpo e em maiúsculo
+            veiculo: modalConfig.tipo === 'CONFIRMAR' ? textoInput.trim().toUpperCase() : null,
+            motivo: modalConfig.tipo === 'COBRIR' ? textoInput.trim() : null,
+            acao: modalConfig.tipo
+        });
+
+        setModalConfig({ show: false, tipo: 'CONFIRMAR', linha: null });
+        setValorInput('');
+        fetchMinhaEscala();
+        
+    } catch (error: any) {
+        alert(error.response?.data?.error || "Erro ao registrar ação.");
+    } finally {
+        setEnviando(false);
+    }
+};
 
     if (!isLoggedIn) return null;
 
