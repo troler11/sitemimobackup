@@ -144,7 +144,7 @@ const handleEnviarAcao = async () => {
                                         {!resolvido && (
                                             <div className="d-flex flex-column gap-2">
                                                 <button className="btn btn-success btn-sm" onClick={() => abrirModal(linha, 'CONFIRMAR')}>Confirmar</button>
-                                                <button className="btn btn-outline-danger btn-sm" onClick={() => abrirModal(linha, 'COBRIR')}>Não farei</button>
+                                                <button className="btn btn-danger btn-sm" onClick={() => abrirModal(linha, 'COBRIR')}>Não farei</button>
                                             </div>
                                         )}
                                         {linha.status === 'CONFIRMADO' && (
