@@ -476,9 +476,8 @@ const Escala: React.FC = () => {
             </div>
 
             {/* --- KPI CARDS (COM NOVAS MÉTRICAS DE TROCA) --- */}
-            <div className="kpi-row mb-4">
-                
-                {/* EXISTENTES */}
+            {/* --- KPI CARDS - LINHA 1 --- */}
+            <div className="kpi-row mb-3">
                 <div className="kpi-card">
                     <div className="kpi-icon text-dark">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -546,7 +545,10 @@ const Escala: React.FC = () => {
                         <span className="kpi-number text-warning">{kpis.aguardando}</span>
                     </div>
                 </div>
+            </div>
 
+            {/* --- KPI CARDS - LINHA 2 --- */}
+            <div className="kpi-row mb-4">
                 <div className="kpi-card">
                     <div className="kpi-icon text-red">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -561,7 +563,6 @@ const Escala: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 🔥 NOVOS KPIS DE TROCA 🔥 */}
                 <div className="kpi-card">
                     <div className="kpi-icon" style={{color: '#0dcaf0'}}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -606,7 +607,6 @@ const Escala: React.FC = () => {
                         <span className="kpi-number" style={{color: '#6f42c1'}}>{kpis.totalTrocas}</span>
                     </div>
                 </div>
-
             </div>
 
             {/* --- FILTROS --- */}
