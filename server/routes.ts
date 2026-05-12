@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { login, loginMotorista } from './controllers/authController';
+import { loginUnificado } from './controllers/authController';
 import { getDashboardData } from './controllers/dashboardController';
 import { calculateRoute, gerarLink } from './controllers/mapController';
 import { getUsers, createUser, updateUser, deleteUser } from './controllers/userController';
@@ -20,8 +20,7 @@ const upload = multer({
 // ==========================================
 // --- ROTAS PÚBLICAS ---
 // ==========================================
-router.post('/login', login);
-router.post('/login-motorista', loginMotorista); 
+router.post('/login', loginUnificado);
 
 // ==========================================
 // --- ROTAS PROTEGIDAS (Exigem Token) ---
