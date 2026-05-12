@@ -55,10 +55,7 @@ const MinhaEscala: React.FC = () => {
         fetchMinhaEscala();
     }, [fetchMinhaEscala]);
 
-    const abrirModal = (linha: LinhaMotorista, tipo: 'CONFIRMAR' | 'COBRIR') => {
-        setValorInput(tipo === 'CONFIRMAR' && linha.frota_escala !== '---' ? linha.frota_escala : '');
-        setModalConfig({ show: true, tipo, linha });
-    };const abrirModal = (linha: LinhaMotorista, tipo: 'CONFIRMAR' | 'COBRIR') => {
+const abrirModal = (linha: LinhaMotorista, tipo: 'CONFIRMAR' | 'COBRIR') => {
     // 🔥 Forçamos o valor a ser sempre uma STRING usando String(...)
     // Isso evita que um prefixo numérico (ex: 580) quebre o .trim() depois
     const valorInicial = tipo === 'CONFIRMAR' && linha.frota_escala && linha.frota_escala !== '---' 
