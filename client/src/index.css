@@ -1,0 +1,53 @@
+/* --- ESTILOS DO DASHBOARD (Portado do PHP Original) --- */
+
+/* Cards de KPI (Gradientes) */
+.bg-gradient-secondary { background: linear-gradient(135deg,#4b5563 0,#6b7280 100%) !important; color: white; }
+.bg-gradient-info { background: linear-gradient(135deg,#0891b2 0,#06b6d4 100%) !important; color: white; }
+.bg-gradient-warning { background: linear-gradient(135deg,#f59e0b 0,#d97706 100%) !important; color: white; }
+
+/* Barra de Filtros e Pesquisa */
+.filter-bar {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.05);
+}
+
+.search-bar {
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    padding-left: 40px;
+    height: 45px;
+}
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    z-index: 5;
+}
+
+/* Tabela Ultra Compacta */
+.table-ultra-compact { font-size: 0.85rem; }
+.table-ultra-compact td, .table-ultra-compact th {
+    padding: 4px 8px !important;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+.col-narrow { width: 1%; white-space: nowrap; }
+
+/* Badges e Status */
+.blink-animation { animation: blinker 1.5s linear infinite; }
+@keyframes blinker { 50% { opacity: .5; } }
+
+.badge-pill { border-radius: 50rem; padding-left: 0.6em; padding-right: 0.6em; }
+
+/* Loading Skeletons */
+.skeleton { background: #e0e0e0; border-radius: 4px; animation: shimmer 1.5s infinite linear; }
+.skeleton-text { height: 12px; margin-bottom: 6px; width: 100%; }
+@keyframes shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }

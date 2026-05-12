@@ -1,0 +1,322 @@
+:root {
+    --mimo-red: #a81b24;       /* Vermelho da marca */
+    --mimo-red-accent: #d32f2f; 
+    --mimo-blue-accent: #2d3666; 
+    --mimo-yellow-accent: #f2a318; 
+    --mimo-dark: #333333;
+    --mimo-grey-accent: rgb(101 104 107) !important; 
+    --mimo-green: #2e7d32;    
+    --mimo-gray: #f4f7f6;     
+    --text-dark: #333333;
+    --text-muted: #666666;
+    --border-radius: 8px;
+}
+
+.animate-pulse {
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+body {
+    background-color: var(--mimo-gray);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-dark);
+}
+
+/* Container Principal */
+.main-content {
+    padding: 30px;
+    background-color: var(--mimo-gray);
+    min-height: 100vh;
+}
+
+/* Header */
+.header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.search-wrapper {
+    width: 350px;
+}
+
+/* Estilo padrão para Inputs e Selects (Borda Vermelha) */
+.form-control.red-border,
+.form-select.red-border {
+    border: 1px solid var(--mimo-red-accent);
+    border-radius: var(--border-radius);
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    color: var(--text-dark);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.form-control.red-border:focus,
+.form-select.red-border:focus {
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.15);
+    border-color: var(--mimo-red);
+    outline: none;
+}
+
+/* Filtros Flex Container */
+.filters-flex {
+    display: flex;
+    gap: 15px;
+}
+
+.filters-flex .form-select {
+    min-width: 180px;
+    cursor: pointer;
+}
+
+/* --- KPI SECTION (MODIFICADO PARA LINHA ÚNICA) --- */
+.kpi-row {
+    display: flex;
+    flex-wrap: nowrap; /* FORÇA linha única */
+    gap: 15px;
+    width: 100%;
+    /* Permite rolagem lateral suave se a tela for muito pequena, sem quebrar layout */
+    overflow-x: auto; 
+    padding-bottom: 5px;
+}
+
+/* Card KPI */
+.kpi-card {
+    flex: 1; /* Distribui o espaço igualmente */
+    min-width: 150px; /* Largura mínima para manter a integridade do design */
+    background: #fff;
+    border: 1px solid var(--mimo-red-accent);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    display: flex;
+    align-items: center; /* Centraliza verticalmente */
+    justify-content: flex-start;
+    gap: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    transition: transform 0.2s;
+    white-space: nowrap; /* Texto não quebra linha */
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(168, 27, 36, 0.1);
+}
+
+/* Ícone (Desenho SVG) - Grande e Estilizado */
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Impede que o ícone encolha */
+}
+
+.kpi-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.kpi-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.kpi-number {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* Cores */
+.text-blue { color: var(--mimo-blue-accent) !important; stroke: var(--mimo-blue-accent); }
+.text-red { color: var(--mimo-red-accent) !important; stroke: var(--mimo-red-accent); }
+.text-grey { color: var(--mimo-grey-accent) !important; stroke: var(--mimo-grey-accent); }
+.text-green { color: var(--mimo-green) !important; stroke: var(--mimo-green); }
+.text-dark { color: var(--text-dark) !important; stroke: var(--text-dark); }
+.text-yellow { color: var(--mimo-yellow-accent) !important; stroke: var(--mimo-yellow-accent); }
+
+
+/* Tabela */
+.table-card {
+    background: #fff;
+    border-radius: var(--border-radius);
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-bottom: 2px solid #eee;
+    text-transform: uppercase;
+}
+
+.table tbody td {
+    padding: 14px 15px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: normal;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #fffbfb;
+}
+
+/* Badges */
+.badge {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.badge-green { background-color: var(--mimo-green); color: #fff; }
+.badge-dark { background-color: var(--mimo-dark); color: #fff; }
+.badge-yellow { background-color: var(--mimo-yellow-accent); color: #fff; }
+.badge-red { background-color: var(--mimo-red-accent); color: #fff; }
+.badge-gray { background-color: #e0e0e0; color: #333; }
+
+/* Botões de Ação */
+.btn-action-outline {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--mimo-red-accent);
+    color: var(--mimo-red-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.btn-action-outline:hover {
+    background: var(--mimo-red-accent);
+    color: #fff;
+}
+
+/* Animação TomTom */
+.blink-icon {
+    animation: blinker 1.5s linear infinite;
+    color: var(--mimo-red-accent);
+}
+
+.btn-circle-edit {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%; /* Faz o botão ser um círculo perfeito */
+    border: none;
+    background-color: rgba(0, 123, 255, 0.1); /* Azul bem clarinho/transparente */
+    color: #007bff; /* Cor do ícone */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle-edit:hover {
+    background-color: #007bff; /* Fica sólido no hover */
+    color: white;
+    transform: scale(1.1); /* Dá um leve zoom */
+}
+
+.btn-circle-edit i {
+    font-size: 18px;
+}
+
+
+.btn-circle-salvar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%; /* Faz o botão ser um círculo perfeito */
+    border: none;
+    background-color: rgba(0, 123, 255, 0.1); /* Azul bem clarinho/transparente */
+    color: #198754; /* Cor do ícone */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle-salvar:hover {
+    background-color: #198754; /* Fica sólido no hover */
+    color: white;
+    transform: scale(1.1); /* Dá um leve zoom */
+}
+
+.btn-circle-salvar i {
+    font-size: 18px;
+}
+
+.btn-circle-cancel {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%; /* Faz o botão ser um círculo perfeito */
+    border: none;
+    background-color: rgba(0, 123, 255, 0.1); /* Azul bem clarinho/transparente */
+    color: #dc3545; /* Cor do ícone */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle-cancel:hover {
+    background-color: #dc3545; /* Fica sólido no hover */
+    color: white;
+    transform: scale(1.1); /* Dá um leve zoom */
+}
+
+.btn-circle-cancel i {
+    font-size: 18px;
+}
+/* --- ADIÇÕES PARA A PÁGINA DE ESCALA --- */
+
+/* Cores de Texto Adicionais */
+.text-warning { color: #f59e0b !important; stroke: #f59e0b; } /* Laranja */
+.text-info { color: #06b6d4 !important; stroke: #06b6d4; }    /* Azul Ciano */
+
+/* Badges Específicos */
+.badge-warning { background-color: #fef3c7; color: #d97706; }
+.badge-info { background-color: #cffafe; color: #0891b2; }
+
+/* Ajuste fino para inputs centrais (datas) */
+.form-control.text-center {
+    text-align: center;
+}
+@keyframes blinker { 50% { opacity: 0.5; } }

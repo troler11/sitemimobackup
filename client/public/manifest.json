@@ -1,0 +1,22 @@
+{
+  "short_name": "Mimo",
+  "name": "Mimo - App Motorista",
+  "description": "Escala de motoristas",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f3f4f6",
+  "display": "standalone",
+  "theme_color": "#00a86b",
+  "orientation": "portrait"
+}
