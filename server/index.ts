@@ -6,12 +6,15 @@ import routes from './routes';
 
 const app = express();
 
-// 1. HELMET: Esconde a identidade do servidor e protege contra injeções
-app.use(helmet({ contentSecurityPolicy: false }));
+// 1. HELMET: Ajustado para permitir carregamento de recursos locais do PWA
+app.use(helmet({ 
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // 2. CORS RESTRITO
 const originPermitida = process.env.NODE_ENV === 'production' 
-    ? 'https://mimo-mimopainel.3sbqz4.easypanel.host' 
+    ? 'https://mimo-mimotestes.3sbqz4.easypanel.host' 
     : '*'; 
 
 app.use(cors({
@@ -20,39 +23,37 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 3. PROTEÇÃO DE PAYLOAD
 app.use(express.json({ limit: '1mb' })); 
 
 // 4. DELEGAÇÃO DE ROTAS API
 app.use('/api', routes); 
 
+// --- SERVINDO O FRONTEND (AJUSTE PARA WEBPACK + DOCKER) ---
 
-// --- SERVINDO O FRONTEND (Conforme seu código original que funcionava) ---
+// No Docker, __dirname costuma ser /app/dist/server ou /app/server
+// O process.cwd() garante que pegamos a raiz /app
+const rootDir = process.cwd();
+const distPath = path.resolve(rootDir, 'dist/client');
 
-const clientPath = path.join(__dirname, '../client');
-const distPath = path.join(__dirname, '../client/dist');
-const publicPath = path.join(__dirname, '../client/public');
-
-// 1. Libera a pasta 'public' (onde estão o manifest e os ícones do PWA)
-app.use(express.static(publicPath));
-
-// 2. Serve os arquivos de produção gerados pelo build (JS, CSS)
+// 1. Servir arquivos estáticos (JS, CSS, Imagens)
+// Importante: Deve vir ANTES de qualquer rota de fallback
 app.use(express.static(distPath));
 
-// 3. Serve a raiz do client (para outras mídias soltas)
-app.use(express.static(clientPath));
+// 2. Rota explícita para o ícone e manifest (evita erro de Download no PWA)
+app.get(['/manifest.json', '/icon-192.png', '/icon-512.png', '/sw.js'], (req, res) => {
+    res.sendFile(path.join(distPath, req.path));
+});
 
-// 4. Rota Curinga (*) que entrega o index.html (DEVE ficar por último)
+// 3. Rota Curinga (*) que entrega o index.html
 app.get('*', (req: Request, res: Response) => {
-    // Tenta entregar o HTML de produção primeiro (mais rápido e seguro)
-    res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
         if (err) {
-            // Se o build ainda não rodou, entrega o HTML de desenvolvimento
-            res.sendFile(path.join(clientPath, 'index.html'));
+            console.error('🚨 Index.html não encontrado em:', indexPath);
+            res.status(404).send('Frontend não compilado ou pasta incorreta.');
         }
     });
 });
-
 
 // 5. TRATAMENTO DE ERRO GLOBAL
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -60,9 +61,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ error: 'Ocorreu um erro interno no servidor.' });
 });
 
-// --- INICIALIZAÇÃO DO SERVIDOR ---
 const PORT = parseInt(process.env.PORT || '3000');
-
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Servidor rodando na porta ${PORT} e IP 0.0.0.0`);
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
 });
