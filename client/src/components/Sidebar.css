@@ -47,6 +47,23 @@
     --bs-text-opacity: 1;
     color: rgb(255 255 255) !important;
 }
+@media (max-width: 767px) {
+    .sidebar-original {
+        display: none; /* Esconde o menu lateral no celular */
+    }
+    
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: 60px;
+        background: #cc1d24; /* Vermelho da Mimo */
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1000;
+    }
+}
 .btn-outline-danger {
     --bs-btn-color: #ffffff !important;
     --bs-btn-border-color: #ffffff !important;
